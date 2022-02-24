@@ -20,8 +20,19 @@ def interface():
     return
 
 
+def queries():
+    query = "select * from moviePeople"
+    c.execute(query)
+    x = c.fetchall()
+    print(x)
+
+    conn.commit()
+    return
+
+
 def main():
     connect("./miniproject1.db")
+    queries()
     interface()
 
     conn.commit()
