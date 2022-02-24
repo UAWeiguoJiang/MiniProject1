@@ -1,4 +1,5 @@
 import sqlite3
+
 from getpass import getpass     # make pwd invisible
 
 conn = None
