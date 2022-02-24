@@ -21,7 +21,7 @@ def interface():
 
 
 def queries():
-    query = "select * from moviePeople"
+    query = "select * from editors;"
     c.execute(query)
     x = c.fetchall()
     print(x)
@@ -31,7 +31,7 @@ def queries():
 
 
 def main():
-    connect("./miniproject1.db")
+    connect("./database.db")
     queries()
     interface()
 
