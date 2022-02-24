@@ -21,26 +21,6 @@ def interface():
     return
 
 
-def drop_tables():  # for DROPs
-    global conn, c
-    pass
-
-def define_tables():    # for CREATES
-    global conn, c
-    moviePeople = '''
-        create table moviePeople (
-            pid		char(4),
-            name		text,
-            birthYear	int,
-            primary key (pid)
-        );
-    '''
-    c.execute(moviePeople)
-
-    conn.commit()
-    return
-
-
 def insert_data():  # for INSERTs
     global conn, c
     pass
