@@ -15,6 +15,23 @@ def connect(path):
 
 def drop_tables():
     editors = "drop table if exists editors;"
+    follows = "drop table if exists follows;"
+    watch = "drop table if exists watch;"
+    sessions = "drop table if exists sessions;"
+    customers = "drop table if exists customers;"
+    recommendations = "drop table if exists recommendations;"
+    casts = "drop table if exists casts;"
+    movies = "drop table if exists movies;"
+    moviePeople = "drop table if exists moviePeople;"
+    c.execute(moviePeople)
+    c.execute(movies)
+    c.execute(casts)
+    c.execute(recommendations)
+    c.execute(customers)
+    c.execute(sessions)
+    c.execute(watch)
+    c.execute(follows)
+    c.execute(editors)
 
     conn.commit()
     return
@@ -118,8 +135,13 @@ def define_tables():
     return
 
 
+def insert_data():
+    pass
+
+
 def main():
     connect("./miniproject1.db")
+    drop_tables()
     define_tables()
 
     conn.commit()
