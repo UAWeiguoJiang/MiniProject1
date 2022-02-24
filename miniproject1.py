@@ -4,7 +4,7 @@ from getpass import getpass     # make pwd invisible
 conn = None
 c = None
 
-def connect(path):
+def connect(path):  # connect to db
     global conn, c
     conn = sqlite3.connect(path)
     c = conn.cursor()
