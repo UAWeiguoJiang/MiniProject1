@@ -21,6 +21,7 @@ def interface():
 
 
 def drop_tables():  # for DROPs
+    global conn, c
     pass
 
 def define_tables():    # for CREATES
@@ -40,6 +41,7 @@ def define_tables():    # for CREATES
 
 
 def insert_data():  # for INSERTs
+    global conn, c
     pass
 
 
