@@ -1,5 +1,4 @@
 import sqlite3
-
 from getpass import getpass     # make pwd invisible
 
 conn = None
@@ -21,15 +20,9 @@ def interface():
     return
 
 
-def insert_data():  # for INSERTs
-    global conn, c
-    pass
-
-
 def main():
     connect("./miniproject1.db")
     interface()
-    # define_tables()
 
     conn.commit()
     conn.close()
