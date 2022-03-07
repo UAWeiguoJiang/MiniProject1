@@ -47,14 +47,14 @@ def interface():
                         editor(eid, pwd)    # perform operations as an editor
                         break
                 else:
-                    print('No such role, please try again!')
+                    print('Invalid option, please try again!')
 
         elif options.upper() == 'R':       # registration, case insensitive
             while True:
                 cid = input('cid: ')
                 c.execute('select * from customers where cid = ?;', (cid,))
                 if c.fetchall() != []:  # error checking, cid already exists
-                    print('cid already registered, please try a new one.')
+                    print('cid already registered, please try a new one!')
                 else:
                     break
             name = input('Name: ')
@@ -66,7 +66,7 @@ def interface():
             break
 
         else:   # error checking, input other than L / R / X
-            print('No such option!')
+            print('Invalid option, please try again!')
 
     conn.commit()
     return
@@ -79,14 +79,14 @@ def editor(eid, pwd):
 
     while True:
         op = input('Would you like to add a movie, update a recommendation or logout? (A / U / L): ')
-        if op.upper() == 'A':
+        if op.upper() == 'A':   # add a movie, case insensitive
             addMovie()
-        elif op.upper() == 'U':
+        elif op.upper() == 'U':     # update a recommendation, case insensitive
             updateRecommendation()
-        elif op.upper() == 'L':
+        elif op.upper() == 'L':     # logout, case insensitive
             break
-        else:
-            print('No such option!')
+        else:   # error checking
+            print('Invalid option, please try again!')
     
     conn.commit()
     return
@@ -98,7 +98,7 @@ def addMovie():
         mid = int(input('Please provide a movie id: ')) # mid is an integer
         c.execute('select * from movies where mid = ?;', (mid,))
         if c.fetchall() != []:      # if mid already exists
-            print('mid already exists, please try entering another one.')
+            print('mid already exists, please try a new one!')
         else:
             break   # keeps on asking for more info
     title = input('Title: ')
@@ -108,10 +108,10 @@ def addMovie():
 
     while True:
         addCasts = input('Insertion of new movie successful, would you like to proceed on adding casts? (Y / N) ')
-        if addCasts.upper() == 'N':     # no casts added to this movie
+        if addCasts.upper() == 'N':     # no casts added to this movie, case insensitive
             break
         
-        elif addCasts.upper() == 'Y':   # start adding casts
+        elif addCasts.upper() == 'Y':   # start adding casts, case insensitive
             cnt = 1
             while True:
                 print('cast{}'.format(cnt))     # keep track of casts, easier for debugging and better visualization
@@ -126,18 +126,18 @@ def addMovie():
 
                     while True:
                         confirm = input('Confirm and provide role or reject this cast? (C / R) ')
-                        if confirm.upper() == 'C':  # case insensitive
+                        if confirm.upper() == 'C':  # confirm and provide role, case insensitive
                             role = input('Please provide the role of this cast in the movie: ')
                             c.execute('insert into casts values(?, ?, ?);', (mid, pid, role,))
                             break
-                        elif confirm.upper() == 'R':
+                        elif confirm.upper() == 'R':    # reject cast, case insensitive
                             break
-                        else:
-                            print('No such option!')
+                        else:   # error checking
+                            print('Invalid option, please try again!')
                 else:
                     while True:
                         confirm = input('Cast member DNE and you can add it, do you want to proceed or reject? (P / R) ')
-                        if confirm.upper() == 'P':
+                        if confirm.upper() == 'P':  # add cast member, case insensitive
                             while True:     # ask editor to give a unique pid
                                 pid = input('Please enter an unique pid: ')
                                 c.execute('select * from moviePeople where pid = ?', (pid,))
@@ -147,43 +147,43 @@ def addMovie():
                                     print('The pid provided is not unique, please try again.')
 
                             name = input('name: ')  # ask for additional info
-                            birthYear = int(input('birth year: '))
+                            birthYear = int(input('birth year: '))  # birthYear is an integer
                             c.execute('insert into moviePeople values(?, ?, ?);', (pid, name, birthYear,))
 
                             while True:
                                 confirm2 = input('New member added successfully, confirm and provide role or reject this cast? (C / R) ')
-                                if confirm2.upper() == 'C':
+                                if confirm2.upper() == 'C':     # provide role, case insensitive
                                     role = input('Please provide the role of this cast in the movie: ')
                                     c.execute('insert into casts values(?, ?, ?);', (mid, pid, role,))  # add to cast
                                     break
-                                elif confirm2.upper() == 'R':
+                                elif confirm2.upper() == 'R':   # reject role, case insensitive
                                     break
-                                else:
-                                    print('No such option!')
+                                else:   # error checking
+                                    print('Invalid option, please try again!')
                             break
 
-                        elif confirm.upper() == 'R':
+                        elif confirm.upper() == 'R':    # reject adding cast member, case insensitive
                             break
-                        else:
-                            print('No such option!')
+                        else:   # error checking
+                            print('Invalid option, please try again!')
 
                 flag = False
-                while True:
+                while True:     # ask editor to add another cast or not
                     add = input('Would you like to keep adding casts? (Y / N) ')
-                    if add.upper() == 'Y':
+                    if add.upper() == 'Y':      # add another, case insensitive
                         cnt += 1
                         break
-                    elif add.upper() == 'N':
+                    elif add.upper() == 'N':    # stop adding and set flag to break, case insensitive
                         flag = True
                         break
-                    else:
-                        print('No such option!')
+                    else:   # error checking
+                        print('Invalid option, please try again!')
                 if flag:
                     break
             break
         
-        else:
-            print('No such option!')
+        else:   # error checking
+            print('Invalid option, please try again!')
 
     conn.commit()
     return
