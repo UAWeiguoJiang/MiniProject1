@@ -470,7 +470,8 @@ def updates(dictionary):
 
 def isFloat(f):
     """
-        Function: check if an input string can be converted to float or not.
+        Function: check if an input string can be converted to float or not, used
+                  for error checking.
 
         Argument:
             f: input string to be converted
@@ -499,3 +500,4 @@ def main():
 
 if __name__ == '__main__':
 	main()
+
