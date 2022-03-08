@@ -492,7 +492,10 @@ def customer(cid, pwd):
 
 def searchMovies(cid):
     # customer can search for movie by providing keywords
+    # customer can select a movie to see more information about a specific movie
+    # customer can select a movie to start watching or select a cast to start following
     # cid is the customers' id
+    # return: None
     
     global startTime, SID, conn, c
     
@@ -653,6 +656,7 @@ def endWatchingMovie(cid):
     #     - by choosing this option, the system automatically end a movie
     #       if there is any outstanding watching movies
     # cid is the cid from customer table
+    # return: None
     
     global startTime, SID, conn, c
     
