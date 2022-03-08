@@ -313,7 +313,7 @@ def updateRecommendation():
 
         elif op.upper() == 'A':     # annual report, case insensitive
             while True:
-                print('ANUAL REPORT'.center(50))
+                print('ANNUAL REPORT'.center(50))
                 print('pair #    watched 1    watched 2    count    score')
                 c.execute('''
                             select t.mid1, t.mid2, t.cnt, ifnull(r.score, 'N/A')
@@ -500,4 +500,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
-
