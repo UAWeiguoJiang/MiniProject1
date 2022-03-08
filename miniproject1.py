@@ -1,6 +1,7 @@
 import sqlite3
 import sys
 from getpass import getpass     # make pwd invisible
+import datetime     # keep time
 
 conn = None
 c = None
@@ -123,7 +124,7 @@ def addMovie():
     """
         Function: The editor will be able to add a movie by providing a unique movie id,
                   a title, a year, a runtime and a list of cast members and their roles. To add a
-                  cast member, the editor need to enter the id of the cast member, and the program
+                  cast member, the editor needs to enter the id of the cast member, and the program
                   will look up the member and will display the name and the birth year. The editor
                   can confirm and provide the cast member role or reject the cast member. If the cast
                   member does not exist, the editor will be able to add the member by providing a
@@ -487,6 +488,211 @@ def isFloat(f):
 
 def customer(cid, pwd):
     pass
+
+
+def searchMovies(cid):
+    # customer can search for movie by providing keywords
+    # cid is the customers' id
+    
+    global startTime, SID, conn, c
+    
+    # handling keywords
+    keywordsList = []
+    while (keywordsList ==[]):
+        keywords = input('Enter Keywords: ').strip() # get keywords from user without '/n' charater
+        keywordsList = keywords.split(); # split the keywords by a space
+    for i in range(len(keywordsList)):
+        keywordsList[i] = '%'+keywordsList[i].upper()+'%' # turn the terms into "%?%" form
+    
+    # new keyword list for the subqueries because we want to check for cast name, movie title and cast role
+    newKeywordList = []
+    for word in keywordsList:
+        for i in range(3):
+            newKeywordList.append(word)
+    
+    # creating place holder for the subqueries
+    subqueries = "UNION ALL".join([" SELECT DISTINCT(m.mid), m.title, m.year, m.runtime FROM movies m, casts c, moviePeople mp WHERE m.mid = c.mid AND c.pid = mp.pid AND (m.title LIKE ? OR c.role like ? OR mp.name like ?) "
+                                   for words in keywordsList])
+    # execute the queries
+    c.execute(f'''SELECT * FROM ({subqueries}) GROUP BY mid ORDER BY COUNT(title) DESC;''', newKeywordList);
+    moviesList = c.fetchall()
+    
+    if (moviesList == []):
+        print('NO RESULT... RETURNING TO MAIN MENU...')
+        return
+    
+    #print(moviesList)
+    
+    moviesListStartIndex = 0 #first position of movies to be printed
+    moviesListEndIndex = 5 #stop printing at this position
+    
+    while True:
+        print('0 -- Display more movies')
+        
+        # make sure there is enough movie to print
+        if (moviesListEndIndex > len(moviesList)):
+            moviesListEndIndex = len(moviesList)
+        
+        # make sure there is something to display
+        if (moviesListEndIndex <= moviesListStartIndex):
+            moviesListStartIndex = moviesListEndIndex - 5
+        
+        # make sure start index is positive
+        if (moviesListStartIndex < 0):
+            moviesListStartIndex = 0
+        
+        for i in range(moviesListStartIndex, moviesListEndIndex):
+            print(str(i+1) + ' -- TITLE: ' + moviesList[i][1] + ', YEAR: ' + str(moviesList[i][2]) + ', RUNTIME: ' + str(moviesList[i][3]))
+        
+        action = input('Enter selection: ')
+        
+        # make sure user enters integer type of input
+        try:
+            action = int(action)
+        except:
+            print("Please enter numeric inputs...")
+        
+        # display more movies 
+        if (action == 0): 
+            moviesListStartIndex = moviesListEndIndex
+            moviesListEndIndex += 5
+        
+        # selecting a specific
+        else:
+            # make sure selection is in the list
+            try:
+                selectedMovie = moviesList[action-1]
+            except:
+                print('Please choose within the range...')
+            else:
+                break
+    
+    # find casts of the customer selected movies
+    movieID = selectedMovie[0]
+    c.execute('SELECT mp.pid, mp.name FROM moviePeople mp, casts c WHERE c.pid = mp.pid AND c.mid=:ID;', {'ID':movieID})
+    casts = c.fetchall()
+    
+    # find number of customer watched the movie
+    c.execute('SELECT m.mid, count(distinct cid) FROM movies m, watch w WHERE m.mid = w.mid AND w.mid=:ID AND w.duration >= 0.5*m.runtime GROUP BY m.mid;', {'ID': movieID})
+    counts = c.fetchall()
+    
+    if (counts == []):
+        count = 0
+    else:
+        count = counts[0][1]
+    
+    # print the movie
+    print('TITLE: ' + selectedMovie[1] + ', YEAR: ' + str(selectedMovie[2]) + ', RUNTIME: ' + str(selectedMovie[3]))
+    # print the casts
+    for i in range(len(casts)):
+        print(chr(9) + 'Cast ' + str(i+1) + ': ' + casts[i][1])
+    # print number of customer watched the movie
+    print(chr(9) + 'Number of Watches: ' + str(count))
+    
+    # prompt for selection to either follow cast or watch movie
+    while True:
+        print('0 -- Start watching')
+        print('Select a casts from below to follow')
+        
+        for i in range(len(casts)):
+            print(chr(9) + str(i+1) + ' -- ' + casts[i][1])        
+        
+        selection = input('Selection: ')
+        # make sure user enters integer type of input
+        try:
+            selection = int(selection)
+        except:
+            print("Please enter numeric inputs...")    
+        
+        # start watching a movie
+        if (selection == 0):
+            # handle if no sessions available
+            if (SID == None):
+                print('No available sessions... Returning to main menu...')
+                break
+            
+            else:
+                c.execute('SELECT * FROM sessions WHERE cid=:CID AND sid=:SID;', {'CID':cid, 'SID': SID})
+                sessions = c.fetchall()
+                if (sessions == []): # make sure the session is started
+                    print('No available sessions... Returning to main menu...')
+                    break
+                else:
+                    # inserting into watch table
+                    try:
+                        c.execute('INSERT INTO watch VALUES (?,?,?,?);', (SID, cid, movieID, 0))
+                    except:
+                        print('Already have a session... Returning to main menu...')
+                        break
+                    else:
+                        conn.commit()
+                        startTime = datetime.datetime.now()  # keep track of the time                                   
+                        print('Successfully started to watch a movie! Returning to main menu...')
+                        break
+        
+        # makes sure selection is within the range of casts
+        try:
+            selectedCast = casts[selection-1]
+        except:
+            print('Please choose within the range...')
+        else:
+            try:
+                c.execute('INSERT INTO follows VALUES(?,?);', (cid, selectedCast[0]))
+            except:
+                print('Already following the cast... Returning to main menu...')
+                break
+            else:
+                print('Successfully followed a cast... Returning to main menu...')
+                conn.commit()
+            break
+    return
+
+def endWatchingMovie(cid):
+    # end a watching movie started during the same log in
+    # assumption: customer can only watch one movie
+    #     - by choosing this option, the system automatically end a movie
+    #       if there is any outstanding watching movies
+    # cid is the cid from customer table
+    
+    global startTime, SID, conn, c
+    
+    # check if there is a session
+    if (SID == None):
+        print('No available sessions... Returning to main menu...')
+        return
+    
+    # check if there is a session
+    else:
+        c.execute('SELECT * FROM sessions WHERE cid=:CID AND sid=:SID;', {'CID':cid, 'SID': SID})
+        sessions = c.fetchall()
+        if (sessions == []): # make sure the session is started
+            print('No available sessions... Returning to main menu...')
+            return
+    
+    if (startTime == None):
+        print('Not watching any movies... Returning to main menu...')
+        return
+    
+    diff = datetime.datetime.now() - startTime #get the time difference
+    
+    newDuration = round(diff.total_seconds() / 60) # get duration to the nearest minutes
+    
+    # get the runtime of the movie
+    c.execute('SELECT m.runtime FROM movies m, watch w WHERE m.mid = w.mid AND w.cid=:CID AND w.sid =:SID;', {'CID':cid, 'SID':SID})
+    runtime = c.fetchall()
+    if (runtime == None):
+        print("Not watching any movies... Returning to main menu...")
+        return
+    else: # checks if newDuration is greater than runtime
+        if (newDuration > runtime[0][0]):
+            newDuration = runtime[0][0]
+    
+    # update the duration in watch table
+    c.execute(f'''UPDATE watch SET duration = duration + ? WHERE cid = ? AND sid = ?;''', [newDuration, cid, SID])
+    conn.commit()
+    print('Sucessfully ended a move... Returning to main menu')
+    startTime = None
+    return
 
 
 def main():
