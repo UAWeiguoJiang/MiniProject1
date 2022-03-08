@@ -396,7 +396,7 @@ def updates(dictionary):
                                 c.execute('update recommendations set score = ? where watched = ? and recommended = ?;', (float(score), mid1, mid2,))
                                 print('Update successful!')
                                 break
-                            break
+                        break
                     elif op.upper() == 'D': # delete score, case insensitive
                         c.execute('delete from recommendations where watched = ? and recommended = ?;', (mid1, mid2,))
                         print('Deletion successful!')
