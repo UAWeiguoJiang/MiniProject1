@@ -30,8 +30,8 @@ def connect():  # connect to db
 
 def interface():
     """
-        Function: Login screen, provide options for both customers and editors to login. Both class of users
-                  should be able to login using a valid id (respectively denoted as cid and eid for customers
+        Function: Login screen, provides options for both customers and editors to login. Both classes of users
+                  will be able to login using a valid id (respectively denoted as cid and eid for customers
                   and editors) and a password, denoted with pwd. Unregistered customers will be able to sign
                   up by providing a unique cid and additionally a name, and a password. Users will be able to
                   logout, which directs them to the first screen of the system. There is also an option to exit
