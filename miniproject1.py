@@ -136,16 +136,31 @@ def addMovie():
     global c, conn
 
     while True:
-        mid = int(input('Please provide a movie id: ')) # mid is an integer
-        c.execute('select * from movies where mid = ?;', (mid,))
+        while True:
+            mid = input('Please provide a movie id: ') # mid is an integer
+            if mid.isnumeric() == True:
+                break
+            else:
+                print("Movie id non-numerical, please try again!")
+        c.execute('select * from movies where mid = ?;', (int(mid),))
         if c.fetchall() != []:      # if mid already exists
             print('mid already exists, please try a new one!')
         else:
             break   # keeps on asking for more info
     title = input('Title: ')
-    year = int(input('Year: '))     # year is an integer
-    runtime = int(input('Runtime: '))   # runtime is an integer
-    c.execute('insert into movies values(?, ?, ?, ?);', (mid, title, year, runtime,))    # insert the new movie
+    while True:
+        year = input('Year: ')     # year is an integer
+        if year.isnumeric() == True:
+            break
+        else:
+            print('Year non-integer, please try again!')
+    while True:
+        runtime = input('Runtime: ')   # runtime is an integer
+        if runtime.isnumeric() == True:
+            break
+        else:
+            print('Runtime non-integer, please try again!')
+    c.execute('insert into movies values(?, ?, ?, ?);', (mid, title, int(year), int(runtime),))    # insert the new movie
 
     while True:
         addCasts = input('Insertion of new movie successful, would you like to proceed on adding casts? (Y / N) ')
@@ -156,11 +171,11 @@ def addMovie():
             cnt = 1
             while True:
                 print('cast{}'.format(cnt))     # keep track of casts, easier for debugging and better visualization
-                pid = input('pid: ').upper()    # pid case insensitive
+                pid = input('pid: ')    # pid case insensitive
                 c.execute('''select DISTINCT m.name, m.birthYear
                             from moviePeople m, casts c
                             where m.pid = c.pid
-                            and upper(m.pid) = ?;''', (pid,)) # find name and birth year
+                            and upper(m.pid) = ?;''', (pid.upper(),)) # find name and birth year
                 nameAndBirth = c.fetchall()
                 if nameAndBirth != []:  # if pid already exists, we display the name and the birth year
                     print(nameAndBirth[0][0] + ' ' + str(nameAndBirth[0][1]))   # convert birthYear to str for concatenation
@@ -175,21 +190,26 @@ def addMovie():
                             break
                         else:   # error checking
                             print('Invalid option, please try again!')
-                else:
+                else:   # if pid DNE, we add it
                     while True:
                         confirm = input('Cast member DNE and you can add it, do you want to proceed or reject? (P / R) ')
                         if confirm.upper() == 'P':  # add cast member, case insensitive
                             while True:     # ask editor to give a unique pid
-                                pid = input('Please enter an unique pid: ').upper()
-                                c.execute('select * from moviePeople where upper(pid) = ?', (pid,))
+                                pid = input('Please enter an unique pid: ')
+                                c.execute('select * from moviePeople where upper(pid) = ?', (pid.upper(),))     # pid case insensitive
                                 if c.fetchall() == []:  # check pid's uniqueness
                                     break
                                 else:
                                     print('The pid provided is not unique, please try again.')
 
                             name = input('name: ')  # ask for additional info
-                            birthYear = int(input('birth year: '))  # birthYear is an integer
-                            c.execute('insert into moviePeople values(?, ?, ?);', (pid, name, birthYear,))
+                            while True:
+                                birthYear = input('birth year: ')  # birthYear is an integer
+                                if birthYear.isnumeric() == True:
+                                    break
+                                else:
+                                    print('birthYear non-integer, please try again!')
+                            c.execute('insert into moviePeople values(?, ?, ?);', (pid, name, int(birthYear),))
 
                             while True:
                                 confirm2 = input('New member added successfully, confirm and provide role or reject this cast? (C / R) ')
@@ -249,11 +269,100 @@ def updateRecommendation():
     while True:
         op = input('Would you like to see the monthly report, annual report, or all-time report? (M / A / AT) ')
         if op.upper() == 'AT':      # all-time report, case insensitive
-            print('ALL-TIME REPORT'.center(50))     # title
-            print('pair #    watched 1    watched 2    count    score')     # auxiliary column names for better visualization
-            c.execute('''
-                        select t.mid1, t.mid2, t.cnt, ifnull(r.score, 'N/A')
-                        from (select m1.mid as mid1, m2.mid as mid2, count(distinct c.cid) as cnt
+            while True:
+                print('ALL-TIME REPORT'.center(50))     # title
+                print('pair #    watched 1    watched 2    count    score')     # auxiliary column names for better visualization
+                c.execute('''
+                            select t.mid1, t.mid2, t.cnt, ifnull(r.score, 'N/A')
+                            from (select m1.mid as mid1, m2.mid as mid2, count(distinct c.cid) as cnt
+                            from movies m1, watch w1, sessions s1, customers c, sessions s2, watch w2, movies m2
+                            where m1.mid = w1.mid
+                            and m1.runtime <= w1.duration * 2
+                            and w1.sid = s1.sid
+                            and s1.cid = c.cid
+                            and c.cid = s2.cid
+                            and s2.sid = w2.sid
+                            and w2.mid = m2.mid
+                            and w2.duration * 2 >= m2.runtime
+                            and m2.mid != m1.mid
+                            group by m1.mid, m2.mid
+                            order by count(distinct c.cid) desc) as t left join recommendations r
+                            on r.watched = t.mid1 and r.recommended = t.mid2;
+                        ''')
+                dictionary = dict()     # create a dict() to store each row in the report
+                cnt = 1     # keep count of rows, used for row selection later
+                for i in c.fetchall():
+                    print('{:>3} {:>10} {:>13} {:>10} {:>9}'.format(str(cnt), str(i[0]), str(i[1]), str(i[2]), str(i[3])))
+                    dictionary[str(cnt)] = [i[0], i[1], i[2], i[3]]
+                    cnt += 1
+                print('* N/A means the pair is not in recommendations.')
+                updates(dictionary)     # proceed to perform operations the editor desires
+                flag = False
+                while True:
+                    op = input('Would you like to work on a new pair or stop updating recommendations? (N / S) ')
+                    if op.upper() == 'N':   # keep updating, case insensitive
+                        break
+                    elif op.upper() == 'S': # stop updating, case insensitive
+                        flag = True
+                        break
+                    else:   # error checking
+                        print('Invalid option, please try again!')
+                if flag:
+                    break
+            break
+
+        elif op.upper() == 'A':     # annual report, case insensitive
+            while True:
+                print('ANUAL REPORT'.center(50))
+                print('pair #    watched 1    watched 2    count    score')
+                c.execute('''
+                            select t.mid1, t.mid2, t.cnt, ifnull(r.score, 'N/A')
+                            from (select m1.mid as mid1, m2.mid as mid2, count(distinct c.cid) as cnt
+                            from movies m1, watch w1, sessions s1, customers c, sessions s2, watch w2, movies m2
+                            where m1.mid = w1.mid
+                            and m1.runtime <= w1.duration * 2
+                            and w1.sid = s1.sid
+                            and s1.cid = c.cid
+                            and c.cid = s2.cid
+                            and s2.sid = w2.sid
+                            and w2.mid = m2.mid
+                            and w2.duration * 2 >= m2.runtime
+                            and m2.mid != m1.mid
+                            and s1.sdate >= date('now', '-365 days')
+                            and s2.sdate >= date('now', '-365 days')
+                            group by m1.mid, m2.mid
+                            order by count(distinct c.cid) desc) as t left join recommendations r
+                            on r.watched = t.mid1 and r.recommended = t.mid2;
+                    ''')
+                dictionary = dict()
+                cnt = 1
+                for i in c.fetchall():
+                    print('{:>3} {:>10} {:>13} {:>10} {:>9}'.format(str(cnt), str(i[0]), str(i[1]), str(i[2]), str(i[3])))
+                    dictionary[str(cnt)] = [i[0], i[1], i[2], i[3]]
+                    cnt += 1
+                print('* N/A means the pair is not in recommendations.')
+                updates(dictionary)
+                flag = False
+                while True:
+                    op = input('Would you like to work on a new pair or stop updating recommendations? (N / S) ')
+                    if op.upper() == 'N':   # keep updating, case insensitive
+                        break
+                    elif op.upper() == 'S': # stop updating, case insensitive
+                        flag = True
+                        break
+                    else:   # error checking
+                        print('Invalid option, please try again!')
+                if flag:
+                    break
+            break
+
+        elif op.upper() == 'M':     # monthly report, case insensitive
+            while True:
+                print('MONTHLY REPORT'.center(50))
+                print('pair #    watched 1    watched 2    count    score')
+                c.execute('''
+                    select t.mid1, t.mid2, t.cnt, ifnull(r.score, 'N/A')
+                    from (select m1.mid as mid1, m2.mid as mid2, count(distinct c.cid) as cnt
                         from movies m1, watch w1, sessions s1, customers c, sessions s2, watch w2, movies m2
                         where m1.mid = w1.mid
                         and m1.runtime <= w1.duration * 2
@@ -264,82 +373,32 @@ def updateRecommendation():
                         and w2.mid = m2.mid
                         and w2.duration * 2 >= m2.runtime
                         and m2.mid != m1.mid
+                        and s1.sdate >= date('now', '-30 days')
+                        and s2.sdate >= date('now', '-30 days')
                         group by m1.mid, m2.mid
                         order by count(distinct c.cid) desc) as t left join recommendations r
                         on r.watched = t.mid1 and r.recommended = t.mid2;
                     ''')
-            dictionary = dict()     # create a dict() to store each row in the report
-            cnt = 1     # keep count of rows, used for row selection later
-            for i in c.fetchall():
-                print('{:>3} {:>10} {:>13} {:>10} {:>9}'.format(str(cnt), str(i[0]), str(i[1]), str(i[2]), str(i[3])))
-                dictionary[str(cnt)] = [i[0], i[1], i[2], i[3]]
-                cnt += 1
-            print('* N/A means the pair is not in recommendations.')
-            updates(dictionary)     # proceed to perform operations the editor desires
-            break
-
-        elif op.upper() == 'A':     # annual report, case insensitive
-            print('ANUAL REPORT'.center(50))
-            print('pair #    watched 1    watched 2    count    score')
-            c.execute('''
-                        select t.mid1, t.mid2, t.cnt, ifnull(r.score, 'N/A')
-                        from (select m1.mid as mid1, m2.mid as mid2, count(distinct c.cid) as cnt
-                        from movies m1, watch w1, sessions s1, customers c, sessions s2, watch w2, movies m2
-                        where m1.mid = w1.mid
-                        and m1.runtime <= w1.duration * 2
-                        and w1.sid = s1.sid
-                        and s1.cid = c.cid
-                        and c.cid = s2.cid
-                        and s2.sid = w2.sid
-                        and w2.mid = m2.mid
-                        and w2.duration * 2 >= m2.runtime
-                        and m2.mid != m1.mid
-                        and s1.sdate >= date('now', '-365 days')
-                        and s2.sdate >= date('now', '-365 days')
-                        group by m1.mid, m2.mid
-                        order by count(distinct c.cid) desc) as t left join recommendations r
-                        on r.watched = t.mid1 and r.recommended = t.mid2;
-                ''')
-            dictionary = dict()
-            cnt = 1
-            for i in c.fetchall():
-                print('{:>3} {:>10} {:>13} {:>10} {:>9}'.format(str(cnt), str(i[0]), str(i[1]), str(i[2]), str(i[3])))
-                dictionary[str(cnt)] = [i[0], i[1], i[2], i[3]]
-                cnt += 1
-            print('* N/A means the pair is not in recommendations.')
-            updates(dictionary)
-            break
-
-        elif op.upper() == 'M':     # monthly report, case insensitive
-            print('MONTHLY REPORT'.center(50))
-            print('pair #    watched 1    watched 2    count    score')
-            c.execute('''
-                select t.mid1, t.mid2, t.cnt, ifnull(r.score, 'N/A')
-                from (select m1.mid as mid1, m2.mid as mid2, count(distinct c.cid) as cnt
-                      from movies m1, watch w1, sessions s1, customers c, sessions s2, watch w2, movies m2
-                      where m1.mid = w1.mid
-                      and m1.runtime <= w1.duration * 2
-                      and w1.sid = s1.sid
-                      and s1.cid = c.cid
-                      and c.cid = s2.cid
-                      and s2.sid = w2.sid
-                      and w2.mid = m2.mid
-                      and w2.duration * 2 >= m2.runtime
-                      and m2.mid != m1.mid
-                      and s1.sdate >= date('now', '-30 days')
-                      and s2.sdate >= date('now', '-30 days')
-                      group by m1.mid, m2.mid
-                      order by count(distinct c.cid) desc) as t left join recommendations r
-                      on r.watched = t.mid1 and r.recommended = t.mid2;
-                ''')
-            dictionary = dict()
-            cnt = 1
-            for i in c.fetchall():
-                print('{:>3} {:>10} {:>13} {:>10} {:>9}'.format(str(cnt), str(i[0]), str(i[1]), str(i[2]), str(i[3])))
-                dictionary[str(cnt)] = [i[0], i[1], i[2], i[3]]
-                cnt += 1
-            print('* N/A means the pair is not in recommendations.')
-            updates(dictionary)
+                dictionary = dict()
+                cnt = 1
+                for i in c.fetchall():
+                    print('{:>3} {:>10} {:>13} {:>10} {:>9}'.format(str(cnt), str(i[0]), str(i[1]), str(i[2]), str(i[3])))
+                    dictionary[str(cnt)] = [i[0], i[1], i[2], i[3]]
+                    cnt += 1
+                print('* N/A means the pair is not in recommendations.')
+                updates(dictionary)
+                flag = False
+                while True:
+                    op = input('Would you like to work on a new pair or stop updating recommendations? (N / S) ')
+                    if op.upper() == 'N':   # keep updating, case insensitive
+                        break
+                    elif op.upper() == 'S': # stop updating, case insensitive
+                        flag = True
+                        break
+                    else:   # error checking
+                        print('Invalid option, please try again!')
+                if flag:
+                    break
             break
 
         else:   # error checking
@@ -379,7 +438,7 @@ def updates(dictionary):
                                 print('Score non-numerical, please try again!')
                             else:
                                 c.execute('insert into recommendations values(?, ?, ?);', (mid1, mid2, float(score),))
-                                print('Insertion successful!')
+                                print('Insertion successful, a new report is generated!')
                                 break
                         break
                     else:   # error checking
@@ -399,26 +458,14 @@ def updates(dictionary):
                         break
                     elif op.upper() == 'D': # delete score, case insensitive
                         c.execute('delete from recommendations where watched = ? and recommended = ?;', (mid1, mid2,))
-                        print('Deletion successful!')
+                        print('Deletion successful, a new report is generated!')
                         break
                     else:
                         print('Invalid option, please try again!')
-
-            flag = False
-            while True:
-                op = input('Would you like to work on a new pair or stop updating recommendations? (N / S) ')
-                if op.upper() == 'N':   # keep updating, case insensitive
-                    break
-                elif op.upper() == 'S': # stop updating, case insensitive
-                    flag = True
-                    break
-                else:   # error checking
-                    print('Invalid option, please try again!')
-            if flag:
                 break
     
-    conn.commit()
-    return
+        conn.commit()
+        return
 
 
 def isFloat(f):
