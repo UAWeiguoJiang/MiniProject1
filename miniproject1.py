@@ -450,8 +450,8 @@ def updates(dictionary):
                             score = input('Please provide a score: ')
                             if score.isnumeric() == False and isFloat(score) == False:   # if it's neither an integer or a float
                                 print('Score non-numerical, please try again!')
-			    elif float(score) < 0.0 or float(score) > 1.0:
-				print('Score out of range, should be within [0.0, 1.0]!')
+                            elif float(score) < 0.0 or float(score) > 1.0:
+                                print('Score out of range, should be within [0.0, 1.0]!')
                             else:
                                 c.execute('insert into recommendations values(?, ?, ?);', (mid1, mid2, float(score),))
                                 print('Insertion successful, a new report is generated!')
@@ -467,8 +467,8 @@ def updates(dictionary):
                             score = input('Please provide a score: ')
                             if score.isnumeric() == False and isFloat(score) == False:
                                 print('Score non-numerical, please try again!')
-			    elif float(score) < 0.0 or float(score) > 1.0:
-				print('Score out of range, should be within [0.0, 1.0]!')
+                            elif float(score) < 0.0 or float(score) > 1.0:
+                                print('Score out of range, should be within [0.0, 1.0]!')
                             else:
                                 c.execute('update recommendations set score = ? where watched = ? and recommended = ?;', (float(score), mid1, mid2,))
                                 print('Update successful!')
@@ -686,23 +686,23 @@ def searchMovies(cid):
                         startTime = datetime.datetime.now()  # keep track of the time                                   
                         print('Successfully started to watch a movie! Returning to main menu...')
                         break
-        
-        # makes sure selection is within the range of casts
+
         else:
-		try:
-		    selectedCast = casts[selection-1]
-		except:
-		    print('Please choose within the range...')
-		else:
-		    try:
-			c.execute('INSERT INTO follows VALUES(?,?);', (cid, selectedCast[0]))
-		    except:
-			print('Already following the cast... Returning to main menu...')
-			break
-		    else:
-			print('Successfully followed a cast... Returning to main menu...')
-			conn.commit()
-		    	break
+            # makes sure selection is within the range of casts
+            try:
+                selectedCast = casts[selection-1]
+            except:
+                print('Please choose within the range...')
+            else:
+                try:
+                    c.execute('INSERT INTO follows VALUES(?,?);', (cid, selectedCast[0]))
+                except:
+                    print('Already following the cast... Returning to main menu...')
+                    break
+                else:
+                    print('Successfully followed a cast... Returning to main menu...')
+                    conn.commit()
+                break
     return
 
 def endWatchingMovie(cid):
