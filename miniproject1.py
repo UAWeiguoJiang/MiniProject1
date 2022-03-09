@@ -1,10 +1,20 @@
+# ------------------------------------------------------
+#   Group member: Weiguo Jiang, Liam Chen, Dylan Clarke
+#   CCIDs: weiguo, wenhan6, dclarke
+#   CMPUT 291, Winter 2022
+#
+#   Mini Project I
+# ------------------------------------------------------
+
 import sqlite3
 import sys
 from getpass import getpass     # make pwd invisible
-import datetime     # keep time
+import datetime     # keep track of time
 
 conn = None
 c = None
+SID = None
+startTime = None
 
 def connect():  # connect to db
     """
@@ -48,16 +58,18 @@ def interface():
 
         if options.upper() == 'L':  # login
             while True:
-                role = input('Would you like to login as a customer or an editor? (C / E): ')
+                role = input('Would you like to login as a customer, an editor, or exit? (C / E / X): ')
 
-                if role.upper() == 'C':     # login as customer, case insensitive
+                if role.upper() == 'X':
+                    break
+                elif role.upper() == 'C':     # login as customer, case insensitive
                     cid = input('cid: ')
                     pwd = getpass()     # invisible pwd
                     c.execute('select * from customers where cid = ? and pwd = ?;', (cid, pwd,))
                     if c.fetchall() == []:      # error checking, cid not in customers
                         print('Invalid cid or pwd, please try again!')
                     else:
-                        customer(cid, pwd)  # perform operations as a customer
+                        customer(cid)  # perform operations as a customer
                         break
                 elif role.upper() == 'E':   # login as editor, case insensitive
                     eid = input('eid: ')
@@ -186,6 +198,7 @@ def addMovie():
                         if confirm.upper() == 'C':  # confirm and provide role, case insensitive
                             role = input('Please provide the role of this cast in the movie: ')
                             c.execute('insert into casts values(?, ?, ?);', (mid, pid, role,))
+                            cnt += 1
                             break
                         elif confirm.upper() == 'R':    # reject cast, case insensitive
                             break
@@ -217,6 +230,7 @@ def addMovie():
                                 if confirm2.upper() == 'C':     # provide role, case insensitive
                                     role = input('Please provide the role of this cast in the movie: ')
                                     c.execute('insert into casts values(?, ?, ?);', (mid, pid, role,))  # add to cast
+                                    cnt += 1
                                     break
                                 elif confirm2.upper() == 'R':   # reject role, case insensitive
                                     break
@@ -233,7 +247,6 @@ def addMovie():
                 while True:     # ask editor to add another cast or not
                     add = input('Would you like to keep adding casts? (Y / N) ')
                     if add.upper() == 'Y':      # add another, case insensitive
-                        cnt += 1
                         break
                     elif add.upper() == 'N':    # stop adding and set flag to break, case insensitive
                         flag = True
@@ -486,14 +499,50 @@ def isFloat(f):
         return False
 
 
-def customer(cid, pwd):
-    pass
+def customer(cid):
+    """
+        Function: Serve as a menu for the customer to choose what they wish to do within the program.
+                  May start a session, search for movies, end watching a movie, or end their session.
+                  Users may also log-out from here.
+
+        Argument:
+            cid: Customer's unique id.
+
+        Return: None  
+    """
+
+    while(True):
+        choice = input("Would you like to start your session (1), search for movies (2), stop watching your movie (3), or end your session (4)? (Type 1/2/3/4 for the respective option, or anything else to logout.)\n")
+
+        if choice == '1':
+            startSession(cid) #start session
+        elif choice == '2':
+            searchMovies(cid) #search movies
+        elif choice == '3':
+            endWatchingMovie(cid) #end movie
+        elif choice == '4':
+            endSession(cid) #end session
+        else:
+            if(SID != None):
+                confirm = input("A session is still active. Logging out will close this session, are you sure you want to? Enter 1 to confirm, anything else to return to menu.\n")
+                if(confirm == '1'):
+                    endSession(cid)
+                    print("Thank you for using our services :) ")
+                    break
+            else:
+                print("Thank you for using our services :) ")
+                break
 
 
 def searchMovies(cid):
-    # customer can search for movie by providing keywords
-    # cid is the customers' id
-    
+    ''' Funtion: customer can search for movie by providing keywords
+            customer can then select a movie to see more information
+            customer can select to watch the movie or select a cast to follow.
+
+        Argument: cid
+
+        Return: None
+    '''
     global startTime, SID, conn, c
     
     # handling keywords
@@ -622,7 +671,7 @@ def searchMovies(cid):
                     try:
                         c.execute('INSERT INTO watch VALUES (?,?,?,?);', (SID, cid, movieID, 0))
                     except:
-                        print('Already have a session... Returning to main menu...')
+                        print('Movie is being watched... Returning to main menu...') #maybe add more clear message for this case?
                         break
                     else:
                         conn.commit()
@@ -648,12 +697,16 @@ def searchMovies(cid):
     return
 
 def endWatchingMovie(cid):
-    # end a watching movie started during the same log in
-    # assumption: customer can only watch one movie
-    #     - by choosing this option, the system automatically end a movie
-    #       if there is any outstanding watching movies
-    # cid is the cid from customer table
-    
+    ''' Funtion: end a watching movie started during the same log in
+                 assumption: customer can only watch one movie by choosing
+                 this option, the system automatically end a movie
+                 if there is any outstanding watching movies.
+
+        Arugment: cid
+
+        Return: None
+    '''
+
     global startTime, SID, conn, c
     
     # check if there is a session
@@ -694,6 +747,84 @@ def endWatchingMovie(cid):
     startTime = None
     return
 
+def startSession(cid): 
+    """
+        Function: Starts a session for the customer. 
+                  Fills in the session's SID, cid, and sdate, while leaving duration None.
+                  Only one session may be active at a time.
+
+        Argument:
+            cid - The customer's id.
+
+        Return: None
+    
+    """
+    global SID
+    if(SID != None):
+        print("Error: A session is already active. Please select something else.")
+        return
+    
+    c.execute("SELECT MAX(sid) FROM sessions")  #Grab the highest SID by numerical value 
+    SIDmax = c.fetchall() 
+    SID = int((SIDmax[0][0] + 1))   #Since session SIDs are unique and increment by one, by grabbing the highest 
+                                    #and incrementing by 1 we guarantee that each new SID is unique
+    
+    sesDate = datetime.datetime.now()   #current time
+    c.execute("INSERT INTO sessions VALUES (:sid, :cid, :sdate, :duration)", {'sid': SID, 'cid':cid, 'sdate': sesDate, 'duration': None})
+    print("Session Created.")
+    conn.commit()
+    return
+
+
+def endSession(cid):
+    """
+        Function: Ends the customer's currently active session.
+                  The session's duration will be updated to reflect how long it was active.
+                  The function also checks if a movie is still active, and ends those.
+
+        Argument: None
+
+        Returns: None
+
+    """
+    global SID
+    global startTime
+
+    if(SID == None):
+        print("Error: No session is active to end. Please select something else.")
+        return
+
+    c.execute("SELECT * FROM sessions WHERE sid = :SID", {'SID': SID}) #Find the connected Watch to the Session
+    matchSes = c.fetchall()
+
+    #Calculate the duration and then put it into the Session
+    sesDuration = int(((datetime.datetime.now() - datetime.datetime.fromisoformat(matchSes[0][2]))).total_seconds()/60) 
+
+    #print(sesDuration) #Just for quickly checking datetime
+
+    c.execute("UPDATE sessions SET duration = :dur WHERE sid = :SID", {'dur': sesDuration, 'SID': SID})
+    #Everything directly involving the session is done by this point, now to check if any movies must be dealt with
+
+    c.execute('SELECT * FROM movies m, watch w WHERE m.mid = w.mid AND w.cid=:CID AND w.sid =:SID;', {'CID':cid, 'SID':SID})
+    matchMovie = c.fetchall()
+
+    if matchMovie != [] and startTime != None: #If the customer is watching a movie (matchWatch is not empty) then we must update Watch's duration, otherwise there is nothing else to do.
+        movieRuntime = matchMovie[0][3] #Get the runtime into movieRuntime
+        watchDuration = int(((datetime.datetime.now() - startTime)).total_seconds()/60)  #Get the duration watched into minutes
+        
+        if watchDuration > movieRuntime:    #Duration watched cannot be larger than movie runtime, check for this
+            watchDuration = movieRuntime        #Set duration watched to the length of the movie if needed
+        
+        c.execute("UPDATE watch SET duration = :dur WHERE sid = :SID", {'dur': watchDuration, 'SID': SID})
+        print("Movie closed...")
+        startTime = None
+    else:
+        print("No movies to close...")    
+    
+    print("Session Closed.")
+    SID = None
+    conn.commit()
+    return
 
 def main():
     connect()
