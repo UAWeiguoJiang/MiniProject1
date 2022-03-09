@@ -293,9 +293,11 @@ def updateRecommendation():
                             where m1.mid = w1.mid
                             and m1.runtime <= w1.duration * 2
                             and w1.sid = s1.sid
+                            and w1.cid = c.cid
                             and s1.cid = c.cid
                             and c.cid = s2.cid
                             and s2.sid = w2.sid
+                            and w2.cid = c.cid
                             and w2.mid = m2.mid
                             and w2.duration * 2 >= m2.runtime
                             and m2.mid != m1.mid
@@ -336,9 +338,11 @@ def updateRecommendation():
                             where m1.mid = w1.mid
                             and m1.runtime <= w1.duration * 2
                             and w1.sid = s1.sid
+                            and w1.cid = c.cid
                             and s1.cid = c.cid
                             and c.cid = s2.cid
                             and s2.sid = w2.sid
+                            and w2.cid = c.cid
                             and w2.mid = m2.mid
                             and w2.duration * 2 >= m2.runtime
                             and m2.mid != m1.mid
@@ -381,9 +385,11 @@ def updateRecommendation():
                         where m1.mid = w1.mid
                         and m1.runtime <= w1.duration * 2
                         and w1.sid = s1.sid
+                        and w1.cid = c.cid
                         and s1.cid = c.cid
                         and c.cid = s2.cid
                         and s2.sid = w2.sid
+                        and w2.cid = c.cid
                         and w2.mid = m2.mid
                         and w2.duration * 2 >= m2.runtime
                         and m2.mid != m1.mid
