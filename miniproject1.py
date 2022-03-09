@@ -659,7 +659,11 @@ def searchMovies(cid):
             if (SID == None):
                 print('No available sessions... Returning to main menu...')
                 break
-            
+	
+            # make sure customer only watching one movie
+            if (startTime != None):
+                print('Only one movie can be watched at a time, returning to main menu...')
+		
             else:
                 c.execute('SELECT * FROM sessions WHERE cid=:CID AND sid=:SID;', {'CID':cid, 'SID': SID})
                 sessions = c.fetchall()
@@ -680,20 +684,21 @@ def searchMovies(cid):
                         break
         
         # makes sure selection is within the range of casts
-        try:
-            selectedCast = casts[selection-1]
-        except:
-            print('Please choose within the range...')
         else:
-            try:
-                c.execute('INSERT INTO follows VALUES(?,?);', (cid, selectedCast[0]))
-            except:
-                print('Already following the cast... Returning to main menu...')
-                break
-            else:
-                print('Successfully followed a cast... Returning to main menu...')
-                conn.commit()
-            break
+		try:
+		    selectedCast = casts[selection-1]
+		except:
+		    print('Please choose within the range...')
+		else:
+		    try:
+			c.execute('INSERT INTO follows VALUES(?,?);', (cid, selectedCast[0]))
+		    except:
+			print('Already following the cast... Returning to main menu...')
+			break
+		    else:
+			print('Successfully followed a cast... Returning to main menu...')
+			conn.commit()
+		    	break
     return
 
 def endWatchingMovie(cid):
